@@ -61,6 +61,7 @@
                     <h2 class="card-title fw-bold mb-1">Welcome to Vuexy! 👋</h2>
                     <p class="card-text mb-2">Please sign-in to your account and start the adventure</p>
                     <form class="auth-login-form mt-2" id="loginForm">
+                        @csrf
                         <div class="mb-1">
                             <label class="form-label" for="login-email">Email</label>
                             <input class="form-control" id="login-email" type="text" name="email" placeholder="john@example.com" aria-describedby="login-email" autofocus="" tabindex="1" />
@@ -139,12 +140,9 @@
                 },
                 submitHandler: function(form) {
                     // Get form data
-                    const formData = {
-                        email: $('#login-email').val(),
-                        password: $('#login-password').val(),
-                        remember: $('#remember-me').is(':checked') ? 1 : 0,
-                        _token: '{{ csrf_token() }}'
-                    };
+                        // Serializa tudo incluindo _token
+            const data = $(form).serialize();
+
 
                     // Show loading state on button
                     const submitBtn = $(form).find('button[type="submit"]');
@@ -153,15 +151,15 @@
 
                     // Send AJAX request
                     $.ajax({
-                        url: '{{ route("login") }}',
+                      url: '{{ route("login.post") }}',
                         type: 'POST',
-                        data: formData,
+                        data: data,
                         success: function(response) {
                             // Redirect to intended URL or default dashboard
                             if (response.redirect) {
                                 window.location.href = response.redirect;
                             } else {
-                                window.location.href = '/dashboard';
+                                window.location.href =   '{{ route('dashboard-ecommerce') }}';
                             }
                         },
                         error: function(xhr) {

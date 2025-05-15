@@ -9,34 +9,85 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ResetPasswordMail;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Validator;
 
+
 class AuthenticationController extends Controller
 {
-    // Métodos de visualização (mantidos como antes)
+    /**
+     * Exibe o formulário de login básico
+     */
     public function login_basic()
     {
         $pageConfigs = ['blankPage' => true];
         return view('/content/authentication/auth-login-basic', ['pageConfigs' => $pageConfigs]);
     }
 
+    /**
+     * Exibe o formulário de login com capa
+     */
     public function login_cover()
     {
         $pageConfigs = ['blankPage' => true];
         return view('/content/authentication/auth-login-cover', ['pageConfigs' => $pageConfigs]);
     }
 
-    // Login com JWT
-    public function login(Request $request)
+
+
+/**
+ * Processa o login via JWT (para aplicação MVC)
+ */
+public function login(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|max:255',
+        'password' => 'required|string|min:8|max:32',
+    ]);
+
+    if ($validator->fails()) {
+        return redirect()->back()
+            ->withErrors($validator)
+            ->withInput();
+    }
+
+    try {
+        $credentials = $request->only('email', 'password');
+
+        // Tentativa de autenticação com JWT
+        if (!$token = JWTAuth::attempt($credentials)) {
+            dd(2);
+            return redirect()->back()
+                ->with('error', 'Credenciais inválidas.')
+                ->withInput();
+        }
+
+        // Autentica o usuário na sessão do Laravel também (opcional)
+        Auth::attempt($credentials);
+
+        // Armazena o token JWT na sessão ou cookie
+        session(['jwt_token' => $token]);
+
+        return redirect()->route('dashboard-ecommerce')
+            ->with('success', 'Login realizado com sucesso!');
+
+    } catch (\Exception $e) {
+        return redirect()->back()
+            ->with('error', 'Erro ao processar login: ' . $e->getMessage())
+            ->withInput();
+    }
+}
+
+    /**
+     * Processa o registro de novo usuário
+     */
+    public function register(Request $request)
     {
-        // Validação
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|max:255',
-            'password' => 'required|string|min:8|max:32',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string',
+            'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -47,48 +98,6 @@ class AuthenticationController extends Controller
             ], 422);
         }
 
-        try {
-            $credentials = $request->only('email', 'password');
-
-            if (!$token = JWTAuth::attempt($credentials)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Credenciais inválidas.'
-                ], 401);
-            }
-
-            $user = Auth::user();
-
-            return response()->json([
-                'success' => true,
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
-                'redirect' => route('dashboard-analytics'), // Redirecionamento fixo
-                'token_type' => 'bearer',
-                'expires_in' => auth('api')->factory()->getTTL() * 60
-            ]);
-
-        } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Não foi possível criar o token.'
-            ], 500);
-        }
-    }
-
-
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -96,39 +105,60 @@ class AuthenticationController extends Controller
         ]);
 
         $token = JWTAuth::fromUser($user);
-        Auth::login($user);
+
+
 
         return response()->json([
             'success' => true,
             'message' => 'Registro realizado com sucesso!',
             'user' => $user,
             'token' => $token,
-            'redirect' => route('dashboard-analytics') // Usando o nome da rota
+            'redirect' => route('.dashboard-ecommerce'),
         ], 201);
     }
 
-    // Esqueci a senha - Envio de email
+    /**
+     * Processa o pedido de recuperação de senha
+     */
     public function forgot_password(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email'
+        ]);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Erro de validação.'
+            ], 422);
+        }
+
+        $status = Password::sendResetLink($request->only('email'));
 
         return $status === Password::RESET_LINK_SENT
             ? response()->json(['success' => true, 'message' => __($status)])
             : response()->json(['success' => false, 'message' => __($status)], 400);
     }
 
-    // Reset de senha
+    /**
+     * Processa o reset de senha
+     */
     public function reset_password(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'token' => 'required',
             'email' => 'required|email',
             'password' => 'required|min:8|confirmed',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Erro de validação.'
+            ], 422);
+        }
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
@@ -144,23 +174,40 @@ class AuthenticationController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? response()->json(['success' => true, 'message' => __($status), 'redirect' => '/login'])
+            ? response()->json(['success' => true, 'message' => __($status), 'redirect' => route('login')])
             : response()->json(['success' => false, 'message' => __($status)], 400);
     }
 
-
-
+    /**
+     * Processa o logout
+     */
     public function logout(Request $request)
     {
-        Auth::logout();
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-        return redirect()->route('login.cover')->with('success', 'Logout realizado com sucesso');
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout realizado com sucesso',
+                'redirect' => route('login.cover')
+            ]);
+
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao fazer logout'
+            ], 500);
+        }
     }
 
-    // Métodos de visualização (mantidos como antes)
+    // =============================================
+    // Métodos de Visualização (mantidos como antes)
+    // =============================================
+
     public function register_basic()
     {
         $pageConfigs = ['blankPage' => true];
@@ -227,16 +274,4 @@ class AuthenticationController extends Controller
         return view('/content/authentication/auth-register-multisteps', ['pageConfigs' => $pageConfigs]);
     }
 
-    // Método auxiliar para determinar o redirecionamento
-    protected function determineRedirectPath($user)
-    {
-        // Lógica personalizada para redirecionamento baseado em roles/permissões
-        if ($user->hasRole('admin')) {
-            return route('admin.dashboard');
-        } elseif ($user->hasRole('manager')) {
-            return route('manager.dashboard');
-        }
-
-        return route('dashboard-analytics');
-    }
 }

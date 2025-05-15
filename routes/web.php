@@ -21,96 +21,111 @@ use App\Http\Controllers\ChartsController;
 | Web Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
+| Todas as rotas web da aplicação estão registradas aqui.
+| Rotas são carregadas pelo RouteServiceProvider dentro do grupo "web".
 |
 */
 
-// Rota raiz redireciona para o login
+// Rota raiz redireciona para login
 Route::redirect('/', '/auth/login-cover');
 
-/* Route Authentication Pages */
 Route::group(['prefix' => 'auth'], function () {
-    // Rotas de visualização
-    Route::get('login-cover', [AuthenticationController::class, 'login_cover'])->name('auth-login-cover');
-    Route::get('register-basic', [AuthenticationController::class, 'register_basic'])->name('auth-register-basic');
-    Route::get('register-cover', [AuthenticationController::class, 'register_cover'])->name('auth-register-cover');
-    Route::get('forgot-password-basic', [AuthenticationController::class, 'forgot_password_basic'])->name('auth-forgot-password-basic');
-    Route::get('forgot-password-cover', [AuthenticationController::class, 'forgot_password_cover'])->name('auth-forgot-password-cover');
-    Route::get('reset-password-basic', [AuthenticationController::class, 'reset_password_basic'])->name('auth-reset-password-basic');
-    Route::get('reset-password-cover', [AuthenticationController::class, 'reset_password_cover'])->name('auth-reset-password-cover');
-    Route::get('verify-email-basic', [AuthenticationController::class, 'verify_email_basic'])->name('auth-verify-email-basic');
-    Route::get('verify-email-cover', [AuthenticationController::class, 'verify_email_cover'])->name('auth-verify-email-cover');
-    Route::get('two-steps-basic', [AuthenticationController::class, 'two_steps_basic'])->name('auth-two-steps-basic');
-    Route::get('two-steps-cover', [AuthenticationController::class, 'two_steps_cover'])->name('auth-two-steps-cover');
-    Route::get('register-multisteps', [AuthenticationController::class, 'register_multi_steps'])->name('auth-register-multisteps');
-    Route::get('lock-screen', [AuthenticationController::class, 'lock_screen'])->name('auth-lock_screen');
+    // Rotas GET (Visualização)
+    Route::get('login', [AuthenticationController::class, 'login_cover'])->name('login');
+    Route::get('login-basic', [AuthenticationController::class, 'login_basic'])->name('login.basic');
+    Route::get('login-cover', [AuthenticationController::class, 'login_cover'])->name('login.cover');
 
-    // Rotas de ação
-    Route::post('login', [AuthenticationController::class, 'login'])->name('login');
-    Route::post('register', [AuthenticationController::class, 'register'])->name('register');
-    Route::post('forgot-password', [AuthenticationController::class, 'forgot_password'])->name('forgot-password');
-    Route::post('reset-password', [AuthenticationController::class, 'reset_password'])->name('reset-password');
+    Route::get('register-basic', [AuthenticationController::class, 'register_basic'])->name('register.basic');
+    Route::get('register-cover', [AuthenticationController::class, 'register_cover'])->name('register.cover');
 
-    Route::get('auth/login-cover', function () {
-        return view('auth/login-cover');
-    })->name('login.cover');
+    Route::get('forgot-password-basic', [AuthenticationController::class, 'forgot_password_basic'])->name('password.request.basic');
+    Route::get('forgot-password-cover', [AuthenticationController::class, 'forgot_password_cover'])->name('password.request.cover');
+
+    Route::get('reset-password-basic', [AuthenticationController::class, 'reset_password_basic'])->name('password.reset.basic');
+    Route::get('reset-password-cover', [AuthenticationController::class, 'reset_password_cover'])->name('password.reset.cover');
+
+    Route::get('verify-email-basic', [AuthenticationController::class, 'verify_email_basic'])->name('verification.notice.basic');
+    Route::get('verify-email-cover', [AuthenticationController::class, 'verify_email_cover'])->name('verification.notice.cover');
+
+    Route::get('two-steps-basic', [AuthenticationController::class, 'two_steps_basic'])->name('two.steps.basic');
+    Route::get('two-steps-cover', [AuthenticationController::class, 'two_steps_cover'])->name('two.steps.cover');
+
+    Route::get('register-multisteps', [AuthenticationController::class, 'register_multi_steps'])->name('register.multisteps');
+
+    // Rotas POST (Ação)
+    Route::post('login', [AuthenticationController::class, 'login'])->name('login.post');
+    Route::post('register', [AuthenticationController::class, 'register'])->name('register.post');
+
+    Route::post('forgot-password', [AuthenticationController::class, 'forgot_password'])->name('password.email');
+    Route::post('reset-password', [AuthenticationController::class, 'reset_password'])->name('password.update');
+
+    Route::post('logout', [AuthenticationController::class, 'logout'])->name('logout');
 });
-
-// Grupo de rotas protegidas por autenticação
+// ==================== ROTAS PROTEGIDAS ====================
 Route::middleware(['auth'])->group(function () {
-    // Main Page Route
-    Route::get('/home', [DashboardController::class, 'dashboardEcommerce'])->name('dashboard-ecommerce');
+    // Dashboard
+    Route::get('/home', [DashboardController::class, 'dashboardEcommerce'])->name('.dashboard-ecommerce');
 
-    /* Route Dashboards */
     Route::prefix('content/dashboard')->group(function() {
-        Route::get('dashboard-analytic', [DashboardController::class, 'dashboardAnalytics'])
-             ->name('dashboard-analytics'); // Nome da rota
-
-        Route::get('dashboard-ecommerce', [DashboardController::class, 'dashboardEcommerce'])
-             ->name('dashboard-ecommerce');
+        Route::get('dashboard-analytic', [DashboardController::class, 'dashboardAnalytics'])->name('dashboard-analytics');
+        Route::get('dashboard-ecommerce', [DashboardController::class, 'dashboardEcommerce'])->name('dashboard-ecommerce');
     });
 
-    /* Route Apps */
-    Route::group(['prefix' => 'app'], function () {
+    // Aplicativos
+    Route::prefix('app')->group(function () {
         Route::get('email', [AppsController::class, 'emailApp'])->name('app-email');
         Route::get('chat', [AppsController::class, 'chatApp'])->name('app-chat');
         Route::get('todo', [AppsController::class, 'todoApp'])->name('app-todo');
         Route::get('calendar', [AppsController::class, 'calendarApp'])->name('app-calendar');
         Route::get('kanban', [AppsController::class, 'kanbanApp'])->name('app-kanban');
-        Route::get('invoice/list', [AppsController::class, 'invoice_list'])->name('app-invoice-list');
-        Route::get('invoice/preview', [AppsController::class, 'invoice_preview'])->name('app-invoice-preview');
-        Route::get('invoice/edit', [AppsController::class, 'invoice_edit'])->name('app-invoice-edit');
-        Route::get('invoice/add', [AppsController::class, 'invoice_add'])->name('app-invoice-add');
-        Route::get('invoice/print', [AppsController::class, 'invoice_print'])->name('app-invoice-print');
-        Route::get('ecommerce/shop', [AppsController::class, 'ecommerce_shop'])->name('app-ecommerce-shop');
-        Route::get('ecommerce/details', [AppsController::class, 'ecommerce_details'])->name('app-ecommerce-details');
-        Route::get('ecommerce/wishlist', [AppsController::class, 'ecommerce_wishlist'])->name('app-ecommerce-wishlist');
-        Route::get('ecommerce/checkout', [AppsController::class, 'ecommerce_checkout'])->name('app-ecommerce-checkout');
+
+        // Faturas
+        Route::prefix('invoice')->group(function () {
+            Route::get('list', [AppsController::class, 'invoice_list'])->name('app-invoice-list');
+            Route::get('preview', [AppsController::class, 'invoice_preview'])->name('app-invoice-preview');
+            Route::get('edit', [AppsController::class, 'invoice_edit'])->name('app-invoice-edit');
+            Route::get('add', [AppsController::class, 'invoice_add'])->name('app-invoice-add');
+            Route::get('print', [AppsController::class, 'invoice_print'])->name('app-invoice-print');
+        });
+
+        // E-commerce
+        Route::prefix('ecommerce')->group(function () {
+            Route::get('shop', [AppsController::class, 'ecommerce_shop'])->name('app-ecommerce-shop');
+            Route::get('details', [AppsController::class, 'ecommerce_details'])->name('app-ecommerce-details');
+            Route::get('wishlist', [AppsController::class, 'ecommerce_wishlist'])->name('app-ecommerce-wishlist');
+            Route::get('checkout', [AppsController::class, 'ecommerce_checkout'])->name('app-ecommerce-checkout');
+        });
+
+        // Outros apps
         Route::get('file-manager', [AppsController::class, 'file_manager'])->name('app-file-manager');
+
+        // Controle de Acesso
         Route::get('access-roles', [AppsController::class, 'access_roles'])->name('app-access-roles');
         Route::get('access-permission', [AppsController::class, 'access_permission'])->name('app-access-permission');
-        Route::get('user/list', [AppsController::class, 'user_list'])->name('app-user-list');
-        Route::get('user/view/account', [AppsController::class, 'user_view_account'])->name('app-user-view-account');
-        Route::get('user/view/security', [AppsController::class, 'user_view_security'])->name('app-user-view-security');
-        Route::get('user/view/billing', [AppsController::class, 'user_view_billing'])->name('app-user-view-billing');
-        Route::get('user/view/notifications', [AppsController::class, 'user_view_notifications'])->name('app-user-view-notifications');
-        Route::get('user/view/connections', [AppsController::class, 'user_view_connections'])->name('app-user-view-connections');
+
+        // Usuários
+        Route::prefix('user')->group(function () {
+            Route::get('list', [AppsController::class, 'user_list'])->name('app-user-list');
+            Route::get('view/account', [AppsController::class, 'user_view_account'])->name('app-user-view-account');
+            Route::get('view/security', [AppsController::class, 'user_view_security'])->name('app-user-view-security');
+            Route::get('view/billing', [AppsController::class, 'user_view_billing'])->name('app-user-view-billing');
+            Route::get('view/notifications', [AppsController::class, 'user_view_notifications'])->name('app-user-view-notifications');
+            Route::get('view/connections', [AppsController::class, 'user_view_connections'])->name('app-user-view-connections');
+        });
     });
 
-    /* Route UI */
-    Route::group(['prefix' => 'ui'], function () {
+    // UI Elements
+    Route::prefix('ui')->group(function () {
         Route::get('typography', [UserInterfaceController::class, 'typography'])->name('ui-typography');
     });
 
-    /* Route Icons */
-    Route::group(['prefix' => 'icons'], function () {
+    // Ícones
+    Route::prefix('icons')->group(function () {
         Route::get('feather', [UserInterfaceController::class, 'icons_feather'])->name('icons-feather');
     });
 
-    /* Route Cards */
-    Route::group(['prefix' => 'card'], function () {
+    // Cards
+    Route::prefix('card')->group(function () {
         Route::get('basic', [CardsController::class, 'card_basic'])->name('card-basic');
         Route::get('advance', [CardsController::class, 'card_advance'])->name('card-advance');
         Route::get('statistics', [CardsController::class, 'card_statistics'])->name('card-statistics');
@@ -118,8 +133,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('actions', [CardsController::class, 'card_actions'])->name('card-actions');
     });
 
-    /* Route Components */
-    Route::group(['prefix' => 'component'], function () {
+    // Componentes
+    Route::prefix('component')->group(function () {
         Route::get('accordion', [ComponentsController::class, 'accordion'])->name('component-accordion');
         Route::get('alert', [ComponentsController::class, 'alert'])->name('component-alert');
         Route::get('avatar', [ComponentsController::class, 'avatar'])->name('component-avatar');
@@ -146,8 +161,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('toast', [ComponentsController::class, 'toast'])->name('component-bs-toast');
     });
 
-    /* Route Extensions */
-    Route::group(['prefix' => 'ext-component'], function () {
+    // Extensões
+    Route::prefix('ext-component')->group(function () {
         Route::get('sweet-alerts', [ExtensionController::class, 'sweet_alert'])->name('ext-component-sweet-alerts');
         Route::get('block-ui', [ExtensionController::class, 'block_ui'])->name('ext-component-block-ui');
         Route::get('toastr', [ExtensionController::class, 'toastr'])->name('ext-component-toastr');
@@ -163,8 +178,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('locale', [ExtensionController::class, 'locale'])->name('ext-component-locale');
     });
 
-    /* Route Page Layouts */
-    Route::group(['prefix' => 'page-layouts'], function () {
+    // Layouts de Página
+    Route::prefix('page-layouts')->group(function () {
         Route::get('collapsed-menu', [PageLayoutController::class, 'layout_collapsed_menu'])->name('layout-collapsed-menu');
         Route::get('full', [PageLayoutController::class, 'layout_full'])->name('layout-full');
         Route::get('without-menu', [PageLayoutController::class, 'layout_without_menu'])->name('layout-without-menu');
@@ -172,8 +187,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('blank', [PageLayoutController::class, 'layout_blank'])->name('layout-blank');
     });
 
-    /* Route Forms */
-    Route::group(['prefix' => 'form'], function () {
+    // Formulários
+    Route::prefix('form')->group(function () {
         Route::get('input', [FormsController::class, 'input'])->name('form-input');
         Route::get('input-groups', [FormsController::class, 'input_groups'])->name('form-input-groups');
         Route::get('input-mask', [FormsController::class, 'input_mask'])->name('form-input-mask');
@@ -193,50 +208,64 @@ Route::middleware(['auth'])->group(function () {
         Route::get('repeater', [FormsController::class, 'form_repeater'])->name('form-repeater');
     });
 
-    /* Route Tables */
-    Route::group(['prefix' => 'table'], function () {
+    // Tabelas
+    Route::prefix('table')->group(function () {
         Route::get('', [TableController::class, 'table'])->name('table');
         Route::get('datatable/basic', [TableController::class, 'datatable_basic'])->name('datatable-basic');
         Route::get('datatable/advance', [TableController::class, 'datatable_advance'])->name('datatable-advance');
     });
 
-    /* Route Pages */
-    Route::group(['prefix' => 'page'], function () {
+    // Páginas
+    Route::prefix('page')->group(function () {
+        // Configurações de conta
         Route::get('account-settings-account', [PagesController::class, 'account_settings_account'])->name('page-account-settings-account');
         Route::get('account-settings-security', [PagesController::class, 'account_settings_security'])->name('page-account-settings-security');
         Route::get('account-settings-billing', [PagesController::class, 'account_settings_billing'])->name('page-account-settings-billing');
         Route::get('account-settings-notifications', [PagesController::class, 'account_settings_notifications'])->name('page-account-settings-notifications');
         Route::get('account-settings-connections', [PagesController::class, 'account_settings_connections'])->name('page-account-settings-connections');
+
         Route::get('profile', [PagesController::class, 'profile'])->name('page-profile');
         Route::get('faq', [PagesController::class, 'faq'])->name('page-faq');
-        Route::get('knowledge-base', [PagesController::class, 'knowledge_base'])->name('page-knowledge-base');
-        Route::get('knowledge-base/category', [PagesController::class, 'kb_category'])->name('page-knowledge-base-category');
-        Route::get('knowledge-base/category/question', [PagesController::class, 'kb_question'])->name('page-knowledge-base-question');
+
+        // Base de conhecimento
+        Route::prefix('knowledge-base')->group(function () {
+            Route::get('', [PagesController::class, 'knowledge_base'])->name('page-knowledge-base');
+            Route::get('category', [PagesController::class, 'kb_category'])->name('page-knowledge-base-category');
+            Route::get('category/question', [PagesController::class, 'kb_question'])->name('page-knowledge-base-question');
+        });
+
         Route::get('pricing', [PagesController::class, 'pricing'])->name('page-pricing');
         Route::get('api-key', [PagesController::class, 'api_key'])->name('page-api-key');
-        Route::get('blog/list', [PagesController::class, 'blog_list'])->name('page-blog-list');
-        Route::get('blog/detail', [PagesController::class, 'blog_detail'])->name('page-blog-detail');
-        Route::get('blog/edit', [PagesController::class, 'blog_edit'])->name('page-blog-edit');
-        Route::get('coming-soon', [MiscellaneousController::class, 'coming_soon'])->name('misc-coming-soon');
-        Route::get('not-authorized', [MiscellaneousController::class, 'not_authorized'])->name('misc-not-authorized');
-        Route::get('maintenance', [MiscellaneousController::class, 'maintenance'])->name('misc-maintenance');
+
+        // Blog
+        Route::prefix('blog')->group(function () {
+            Route::get('list', [PagesController::class, 'blog_list'])->name('page-blog-list');
+            Route::get('detail', [PagesController::class, 'blog_detail'])->name('page-blog-detail');
+            Route::get('edit', [PagesController::class, 'blog_edit'])->name('page-blog-edit');
+        });
+
         Route::get('license', [PagesController::class, 'license'])->name('page-license');
     });
 
-    /* Modal Examples */
+    // Páginas diversas
+    Route::get('coming-soon', [MiscellaneousController::class, 'coming_soon'])->name('misc-coming-soon');
+    Route::get('not-authorized', [MiscellaneousController::class, 'not_authorized'])->name('misc-not-authorized');
+    Route::get('maintenance', [MiscellaneousController::class, 'maintenance'])->name('misc-maintenance');
+
+    // Exemplos de modais
     Route::get('/modal-examples', [PagesController::class, 'modal_examples'])->name('modal-examples');
 
-    /* Route Charts */
-    Route::group(['prefix' => 'chart'], function () {
+    // Gráficos
+    Route::prefix('chart')->group(function () {
         Route::get('apex', [ChartsController::class, 'apex'])->name('chart-apex');
         Route::get('chartjs', [ChartsController::class, 'chartjs'])->name('chart-chartjs');
         Route::get('echarts', [ChartsController::class, 'echarts'])->name('chart-echarts');
     });
 
-    // map leaflet
+    // Mapas
     Route::get('/maps/leaflet', [ChartsController::class, 'maps_leaflet'])->name('map-leaflet');
 });
 
-// Rotas públicas (não requerem autenticação)
+// ==================== ROTAS PÚBLICAS ====================
 Route::get('lang/{locale}', [LanguageController::class, 'swap']);
 Route::get('/error', [MiscellaneousController::class, 'error'])->name('error');
